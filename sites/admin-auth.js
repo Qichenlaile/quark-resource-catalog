@@ -89,7 +89,8 @@ async function adminLogin(request, url, env) {
   }
   const db = env.DB;
   const now = currentTime();
-  const client = await sha256(request.headers.get("CF-Connecting-IP") || "site");
+  const clientHeader = env.ADMIN_AUTH_MODE === "setup-token" ? "x-vercel-forwarded-for" : "CF-Connecting-IP";
+  const client = await sha256(request.headers.get(clientHeader) || "site");
   const windowStart = now - now % attemptWindow;
   const attempt = await db.prepare(`INSERT INTO admin_login_attempts (client_key, window_start, attempts)
     VALUES (?, ?, 1) ON CONFLICT(client_key) DO UPDATE SET
@@ -114,20 +115,31 @@ async function adminLogin(request, url, env) {
 
 async function adminAccount(request, url, env) {
   const owner = adminEmail(env);
-  const viewer = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
-  if (!owner || viewer !== owner) {
-    const status = viewer ? 403 : 401;
-    const message = viewer ? "请切换到站点所有者的 ChatGPT 账号。" : "请先验证站点所有者身份。";
-    return htmlResponse(accountPage({ verify: message }), status);
+  const requiresToken = env.ADMIN_AUTH_MODE === "setup-token";
+  const setupToken = env.ADMIN_SETUP_TOKEN;
+  if (requiresToken) {
+    if (!owner || !setupToken || setupToken.length < 32 || setupToken.length > 128) {
+      return htmlResponse(accountPage({ unavailable: true }), 503);
+    }
+  } else {
+    const viewer = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
+    if (!owner || viewer !== owner) {
+      const status = viewer ? 403 : 401;
+      const message = viewer ? "请切换到站点所有者的 ChatGPT 账号。" : "请先验证站点所有者身份。";
+      return htmlResponse(accountPage({ verify: message }), status);
+    }
   }
-  if (request.method === "GET") return htmlResponse(accountPage());
+  if (request.method === "GET") return htmlResponse(accountPage({ requiresToken }));
   if (request.method !== "POST") return methodNotAllowed("GET, POST");
   const form = await adminForm(request, url);
   if (form instanceof Response) return form;
+  if (requiresToken && !matchesHash(await sha256(form.get("setupToken") || ""), await sha256(setupToken))) {
+    return htmlResponse(accountPage({ requiresToken, error: "设置密钥不正确。" }), 403);
+  }
   const password = form.get("password") || "";
   const confirmation = form.get("confirm") || "";
   if (password.length < 14 || password.length > 128 || password !== confirmation) {
-    return htmlResponse(accountPage({ error: "请输入 14 至 128 位字符，两次密码须一致。" }), 422);
+    return htmlResponse(accountPage({ requiresToken, error: "请输入 14 至 128 位字符，两次密码须一致。" }), 422);
   }
   const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
   const digest = await passwordHash(password, salt);

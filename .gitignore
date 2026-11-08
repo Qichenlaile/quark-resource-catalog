@@ -5,5 +5,6 @@ __pycache__/
 /outputs/
 /node_modules/
 /.wrangler/
+/.vercel/
 /.dev.vars*
 /.env*
