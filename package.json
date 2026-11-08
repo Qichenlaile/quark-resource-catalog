@@ -1,0 +1,12 @@
+{
+  "name": "quark-resource-catalog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-sites.mjs",
+    "preview": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev --local"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}

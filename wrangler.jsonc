@@ -1,0 +1,24 @@
+{
+  "name": "quark-catalog-local",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-11-04",
+  "send_metrics": false,
+  "dev": {
+    "ip": "127.0.0.1",
+    "port": 8787
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quark-preview",
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CONTACT",
+      "bucket_name": "quark-preview-contact"
+    }
+  ]
+}

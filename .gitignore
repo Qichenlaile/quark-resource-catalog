@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+/preview.sqlite3*
+/dist/
+/outputs/
+/node_modules/
+/.wrangler/
+/.dev.vars*
+/.env*
