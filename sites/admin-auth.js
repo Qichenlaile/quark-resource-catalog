@@ -116,11 +116,15 @@ async function adminLogin(request, url, env) {
 async function adminAccount(request, url, env) {
   const owner = adminEmail(env);
   const requiresToken = env.ADMIN_AUTH_MODE === "setup-token";
-  const setupToken = env.ADMIN_SETUP_TOKEN;
+  const setupToken = env.ADMIN_SETUP_TOKEN?.trim();
   if (requiresToken) {
-    if (!owner || !setupToken || setupToken.length < 32 || setupToken.length > 128) {
-      return htmlResponse(accountPage({ unavailable: true }), 503);
+    const problems = [];
+    if (!owner) problems.push("生产部署未读取到 ADMIN_EMAIL。");
+    if (!setupToken) problems.push("生产部署未读取到 ADMIN_SETUP_TOKEN。");
+    else if (setupToken.length < 32 || setupToken.length > 128) {
+      problems.push("ADMIN_SETUP_TOKEN 须为 32 至 128 个字符。");
     }
+    if (problems.length) return htmlResponse(accountPage({ unavailable: problems.join(" ") }), 503);
   } else {
     const viewer = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
     if (!owner || viewer !== owner) {
@@ -133,7 +137,7 @@ async function adminAccount(request, url, env) {
   if (request.method !== "POST") return methodNotAllowed("GET, POST");
   const form = await adminForm(request, url);
   if (form instanceof Response) return form;
-  if (requiresToken && !matchesHash(await sha256(form.get("setupToken") || ""), await sha256(setupToken))) {
+  if (requiresToken && !matchesHash(await sha256((form.get("setupToken") || "").trim()), await sha256(setupToken))) {
     return htmlResponse(accountPage({ requiresToken, error: "设置密钥不正确。" }), 403);
   }
   const password = form.get("password") || "";

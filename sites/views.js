@@ -388,7 +388,7 @@ function loginPage({ email = "", notice = "", error = "", active = false } = {})
     <p class="login-first">首次使用？<a href="/admin/account">设置网站管理密码</a></p>`);
 }
 
-function accountPage({ verify = "", error = "", requiresToken = false, unavailable = false } = {}) {
+function accountPage({ verify = "", error = "", requiresToken = false, unavailable = "" } = {}) {
   let controls = "";
   if (verify) {
     controls = '<a class="login-submit" href="/signin-with-chatgpt?return_to=%2Fadmin%2Faccount" target="_top">使用 ChatGPT 验证</a>';
@@ -401,7 +401,7 @@ function accountPage({ verify = "", error = "", requiresToken = false, unavailab
         <button class="login-submit" type="submit">保存管理密码</button>
       </form>`;
   }
-  const caption = unavailable ? "站长尚未启用密码设置。" : verify || "为本站设置独立密码，至少 14 个字符。";
+  const caption = unavailable || verify || "为本站设置独立密码，至少 14 个字符。";
   return loginLayout("设置网站管理密码", caption,
     controls + '<a class="login-current" href="/admin/login">返回账号登录</a>');
 }
